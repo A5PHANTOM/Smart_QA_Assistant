@@ -1,12 +1,12 @@
 import logging
 import google.generativeai as genai
-from smart_doc_qa.embeddings import generate_embedding
-from smart_doc_qa.vector_store import search
+from embeddings import generate_embedding
+from vector_store import search
 
 logger = logging.getLogger(__name__)
 
 # The recommended lightweight generation model for text evaluation
-GENERATION_MODEL = "gemini-1.5-flash"
+GENERATION_MODEL = "gemini-2.5-flash"
 
 def retrieve_context(query: str, top_k: int = 5) -> tuple[str, float]:
     """
@@ -41,7 +41,14 @@ def retrieve_context(query: str, top_k: int = 5) -> tuple[str, float]:
         
     # Combine chunks dynamically into one formatted structure block
     contexts = [res["chunk_text"] for res in results]
-    combined_context = "\n\n---\n\n".join(contexts)
+    
+    # Limit to maximum 5 chunks to avoid exceeding LLM context limits safely
+    contexts = contexts[:5]
+    
+    # Format cleanly with explicit section headings for the LLM
+    combined_context = "\n\n".join(
+        [f"Context {i+1}:\n{ctx}" for i, ctx in enumerate(contexts)]
+    )
     
     return combined_context, highest_score
 
@@ -61,7 +68,7 @@ Answer only from the provided context.
 Do not use external knowledge.
 If the answer is not present in the context, say the information is not available.
 
-Context:
+Context Requirements:
 {context}
 
 Question:
@@ -70,7 +77,12 @@ Question:
     try:
         model = genai.GenerativeModel(GENERATION_MODEL)
         response = model.generate_content(strict_prompt)
-        return response.text.strip()
+        
+        # Ensure safely the response body isn't null escaping error bounds
+        if response.text:
+            return response.text.strip()
+            
+        return "The model could not generate a valid response."
     except Exception as e:
         logger.error(f"Error executing context constraints towards Gemini text generation limits. Reason: {e}")
         return "An internal error natively generated while structuring your request against the model interface limits."
@@ -86,11 +98,19 @@ def execute_rag_query(query: str) -> str:
     Returns:
         str: The final generated contextual answer bounds safely mapping the target request natively.
     """
+    # Validation constraint preventing raw empty executions failing pipeline limits silently
+    if not query.strip():
+        return "Query cannot be empty."
+        
     logger.info(f"Executing RAG pipeline mapping user query natively: '{query}'")
     
     # Execute embeddings geometric structural bounds fetching closest text matches
     context, highest_score = retrieve_context(query)
     
+    # Safety boundary evaluating whether anything matched natively from searches
+    if not context:
+        return "The document does not contain enough information to answer this."
+        
     logger.info(f"Primary contextual top target highest evaluated parameter score strictly resolved: {highest_score:.4f}")
     
     # Validation constraint threshold handling preventing hallucinatory responses natively mapped bounds evaluating geometric limits

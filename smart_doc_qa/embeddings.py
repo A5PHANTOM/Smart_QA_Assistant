@@ -18,7 +18,7 @@ else:
     genai.configure(api_key=api_key)
 
 # The standard recommended embedding model for general text tasks
-EMBEDDING_MODEL = "models/text-embedding-004" 
+EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 def generate_embedding(text: str) -> list[float]:
     """
@@ -43,7 +43,7 @@ def generate_embedding(text: str) -> list[float]:
             model=EMBEDDING_MODEL,
             content=text,
             task_type="retrieval_document",
-            title="Smart Document Q&A Embedding"  # Optional metadata mapping
+            title="Smart Document Q&A Embedding"
         )
         return result['embedding']
     except Exception as e:
@@ -79,7 +79,7 @@ def generate_embeddings(texts: list[str]) -> list[list[float]]:
             title="Smart Document Q&A Embedding Batch"
         )
         
-        return [item["embedding"] for item in result["embeddings"]]
+        return result["embedding"]
     except Exception as e:
         logger.error(f"Failed to generate batch embeddings array. Reason: {e}")
         raise
