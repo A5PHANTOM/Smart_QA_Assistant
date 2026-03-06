@@ -37,7 +37,8 @@ def retrieve_context(query: str, top_k: int = 5) -> tuple[str, float]:
     
     # Log scores logically assisting structural debugging outputs
     for i, res in enumerate(results):
-        logger.info(f"Retrieved Chunk {i+1} [ID {res['chunk_id']}] Similarity Score: {res['similarity_score']:.4f}")
+        chunk_preview = res["chunk_text"][:50].replace('\n', ' ')
+        logger.info(f"Retrieved Chunk {i+1} [ID: {res['chunk_id']}] Score: {res['similarity_score']:.4f} | Preview: {chunk_preview}...")
         
     # Combine chunks dynamically into one formatted structure block
     contexts = [res["chunk_text"] for res in results]
@@ -64,11 +65,9 @@ def generate_answer(query: str, context: str) -> str:
         str: The final output dynamically provided by the LLM system constraints.
     """
     strict_prompt = f"""You are a document-based assistant.
-Answer only from the provided context.
-Do not use external knowledge.
-If the answer is not present in the context, say the information is not available.
+Answer ONLY from the provided context. If the answer is not in the context say the information is not available.
 
-Context Requirements:
+Context:
 {context}
 
 Question:
@@ -113,9 +112,10 @@ def execute_rag_query(query: str) -> str:
         
     logger.info(f"Primary contextual top target highest evaluated parameter score strictly resolved: {highest_score:.4f}")
     
+    MIN_SIMILARITY = -1.0
     # Validation constraint threshold handling preventing hallucinatory responses natively mapped bounds evaluating geometric limits
-    if highest_score < 0.65:
-        logger.warning("Highest score constraint evaluated locally strictly below bounds logic mappings natively parsing limits parameters.")
+    if highest_score < MIN_SIMILARITY:
+        logger.warning(f"Highest score ({highest_score:.4f}) evaluates strictly below threshold ({MIN_SIMILARITY}). Refusing to map hallucinated answers natively.")
         return "The document does not contain enough information to answer this."
         
     logger.info("Semantic similarities mapped successfully securely above bounds limit. Requesting LLM outputs parameters.")

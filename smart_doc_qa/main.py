@@ -30,14 +30,8 @@ async def startup_event():
     On server startup: Load FAISS index from disk if it exists.
     Otherwise create a new index mapping correctly initializing structures.
     """
-    if os.path.exists(vector_store.INDEX_FILE) and os.path.exists(vector_store.METADATA_FILE):
-        try:
-            logger.info("Found existing FAISS index bounds on disk. Bootstrapping...")
-            vector_store.load_index()
-        except Exception as e:
-            logger.error(f"Failed to load FAISS index natively. Error: {e}")
-    else:
-        logger.info("No existing FAISS index arrays found locally. Will be created natively upon first document upload.")
+    logger.info("Initializing Qdrant DB connection natively on startup...")
+    vector_store.init_db()
 
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
@@ -71,19 +65,23 @@ async def upload_document(file: UploadFile = File(...)):
         chunk_texts = [chunk["chunk_text"] for chunk in chunks]
         doc_embeddings = embeddings.generate_embeddings(chunk_texts)
         
-        # 4. Initialize FAISS explicitly gracefully if needed resolving bounds mathematically
-        if vector_store.index is None:
+        # 4. Relying on Qdrant handling mathematically
+        logger.info(f"Checking Qdrant DB natively tracking collections indexing parameters bindings...")
+        
+        # Check explicit configurations establishing mapping natively locally dynamically 
+        try:
+            vector_store.client.get_collection(collection_name=vector_store.COLLECTION_NAME)
+        except Exception:
             dimension = embeddings.get_embedding_dimension()
-            logger.info(f"Dynamically initializing fresh tracking Index limit (dimension={dimension})...")
-            vector_store.initialize_index(dimension)
+            logger.info(f"Dynamically instantiating missing pristine collection bounds mapping (dim={dimension})...")
+            vector_store.init_db(dimension=dimension)
             
         # 5. Store arrays mapping explicitly bounds constraints safely handling geometric configurations
         logger.info("Updating native underlying bounds array storing chunks metadata mapping natively...")
         vector_store.add_documents(chunks, doc_embeddings)
         
         # 6. Save explicitly logic states implicitly mapping natively successfully
-        logger.info("Persisting FAISS configurations explicitly globally...")
-        vector_store.save_index()
+        logger.info("Qdrant DB automatically persists point vectors to disk securely.")
         
         return {
             "message": "File processed and natively indexed dynamically successfully.",
@@ -105,9 +103,10 @@ async def ask_question(request: AskRequest):
         query = request.query
         
         # When evaluating summarization models cleanly across local bounds, the router asks globally specifically resolving complete parameters dynamically
-        # Since FAISS isolates all loaded target values natively across vectors arrays tracking, we join logically natively here:
-        if vector_store.metadata:
-            document_text = "\n".join([item["chunk_text"] for item in vector_store.metadata])
+        # Since Qdrant isolates all loaded target values natively across vectors arrays tracking, we join logically natively here:
+        all_texts = vector_store.get_all_document_texts()
+        if all_texts:
+            document_text = "\n".join(all_texts)
         else:
             document_text = ""
             
